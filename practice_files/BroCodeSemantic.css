@@ -1,0 +1,60 @@
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+header{
+    text-align: center;
+    background-color: hsl(0, 0%, 60%);
+    padding: 25px;
+}
+
+.navBar{
+    display: block;
+    padding: 1em;
+    text-align: center;
+    background-color: hsl(0, 0%, 75%);
+
+}
+.navBar li{
+    display: inline-block;
+}
+.navBar a{
+    padding: 1em;
+    color: white;
+    text-decoration: none;
+}
+.navBar a:hover{
+    color: hsl(0, 0%, 60%);
+}
+
+aside{
+    width: 20%;
+    float: left;
+}
+
+section{
+    width: 40%;
+    float: left;
+}
+
+article{
+    width: 40%;
+    float: left;
+}
+
+footer{
+    display: block;
+    clear: both;
+    text-align: center;
+    background-color: hsl(0, 0%, 60%);
+    padding: 25px;
+}
+
+@media screen and (max-width:600px) {
+    aside, section, article{
+        width: 100%;
+    }
+}
+

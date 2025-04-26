@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Semantic HTML</title>
+    <link rel="stylesheet" href="Semantic.css">
+</head>
+<body>
+    <header>
+        <h1>My Website</h1>
+    </header>
+
+    <nav>
+        <a href="#">Home</a>
+        <a href="#">About</a>
+        <a href="#">Contact</a>
+    </nav>
+    <main>
+        <section>
+            <article>
+        <h2>Main content</h2>
+        <p>This is an example of using semantic elements in HTML.</p>
+            </article>
+
+            <aside>
+                <h3 class="header">Sidebar</h3>
+                    <form action="#" method="post" class="myForm">
+                        <input type="text" name="getFirst" id="firstName" placeholder="First Name:" required><br>
+                        <input type="text" name="getLast" id="lastName" placeholder="Last Name:" required><br>
+                        <input type="password" name="getPassword" id="password" placeholder="Password:" min="8"><br>
+                        <input type="email" name="getEmail" id="email" placeholder="Email:" required><br>
+                        <button type="submit" id="regButton">Get started</button>
+                    </form>
+            </aside>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2025 My Website. All rights reserved.</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,143 @@
+*{
+    box-sizing: border-box;
+    font-family: sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+body{
+    margin: 0;
+}
+
+header{
+    position: relative;
+    width: 100%;
+    height: auto;
+}
+
+.testNav h1, .testNav h3{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    color: white;
+}
+
+.testNav{
+    margin-bottom: 25px;
+    height: 100px;
+    background-color: hsla(214, 95%, 53%, 0.975);
+    padding: 20px;
+}
+
+.testNavBar{
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px 20px;
+}
+
+.testNavBar ul{
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.testNavBar li{
+    margin-right: 20px;
+}
+
+.testNavBar li:last-child{
+    margin-right: 0;
+}
+
+.testNavBar a{
+    color: white;
+    text-decoration: none;
+}
+
+.testNavBar a:hover{
+    color: red;
+    text-decoration: underline;
+}
+
+.container{
+    display: flex;
+    width: 100%;
+}
+
+aside{
+    background-color: hsla(214, 95%, 53%, 0.975);
+    display: grid;
+    grid-template-rows: auto;
+    padding: 10px;
+    border-radius: 20px;
+    margin-right: 15px;
+    margin-left: 10px;  
+    width: 70%;
+    height: auto;
+}
+
+aside h1, aside p, aside img{
+    margin-right: 10px;
+}
+
+#dexter{
+    cursor:pointer;
+    display: flex;
+    justify-self: auto;
+    align-items: center;
+}
+
+main{
+    border-radius: 20px;
+    margin-right: 10px;
+    width: 30%;
+    height: 500px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: hsla(214, 95%, 53%, 0.975);
+}
+
+.myForm{
+    position: absolute;
+}
+
+.myForm input{
+    margin-bottom: 15px;
+    font-size: 16px;
+    padding: 15px;
+    width: 100%;
+    border: 0;
+    border-radius: 20px;
+}
+
+.myForm .header{
+    color: white;
+    text-align: center;
+    margin-bottom: 50px;
+    padding: 10px;
+}
+
+.myForm button{
+    display: block;
+    margin: 20px auto;
+    font-size: 16px;
+    padding: 10px 20px;
+    border-radius: 20px;
+    border: 0;
+}
+
+.myForm button:hover{
+    cursor: pointer;
+    color: red;
+}
+
+.myAside #dexter{
+    display: flex;
+    float: right;
+    margin-left: auto;
+    margin-right: auto;
+}
