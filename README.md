@@ -1,2 +1,1 @@
-# Greetings! If it peaks your interest you can observe my journey as a developer in real time here! I will be uploading all of my progress in this repository. I'm currently 
-# learning on how does GitHub works.
+# Greetings! If it peaks your interest you can observe my journey as a developer in real time here! I will be uploading all of my progress in this repository. I'm currently  learning on how does GitHub works.
