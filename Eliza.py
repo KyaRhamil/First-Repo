@@ -21,8 +21,22 @@ reflections = {
     "you are": "I am", "you": "me", "your": "my"
 }
 
+# Cursed words English
+curse_words_english = (
+    r".*\b(fuck|shit|damn|bitch|asshole)\b.*",
+    [
+        "Please watch your language.",
+        "Let's keep our conversation respectful.",
+        "Mind your words, please.",
+        "I'd prefer if we stayed polite.",
+        "Let's refrain from using such language."
+    ]
+)
+
 # English patterns
+# English patterns (updated)
 english_pairs = [
+    curse_words_english,  # Added curse words filter
     (r"hi|hello|hey", ["Hello! 😊", "Hi there! 👋", "Hey! How can I help?"]),
     (r"how are you?", ["I'm feeling great, thanks for asking!", "Feeling super helpful today! 💬", "All systems go! 🚀"]),
     (r"i need (.*)", ["Why do you need %1?", "Would getting %1 help you?", "What would happen if you don't get %1?"]),
@@ -38,8 +52,22 @@ english_pairs = [
     (r"(.*)", ["Interesting. Tell me more.", "I see. Go on...", "That's intriguing."])
 ]
 
+# Masamang salita Tagalog
+curse_words_tagalog = (
+    r".*\b(tangina|putang ina|gago|ulol|puta)\b.*",
+    [
+        "Pakiusap, gamitin natin ang magalang na pananalita.",
+        "Iwasan natin ang pagmumura, salamat.",
+        "Magalang na usapan lang sana.",
+        "Tayo'y maging maayos sa salita.",
+        "Huwag sanang gamitin ang mga malaswang salita."
+    ]
+)
+
 # Tagalog patterns
+# Tagalog patterns (updated)
 tagalog_pairs = [
+    curse_words_tagalog,  # Added curse words filter
     (r"kamusta.*", ["Mabuti naman ako, ikaw? 🤗", "Ayos lang ako. Kumusta ka rin?"]),
     (r"kailangan ko ng (.*)", ["Bakit mo kailangan ang %1?", "Para saan ang %1?", "Ano ang magiging epekto ng %1?"]),
     (r"nais ko na (.*)", ["Bakit mo gustong %1?", "Ano ang nararamdaman mo tungkol sa %1?", "May dahilan ba kung bakit mo hinahangad ang %1?"]),
@@ -52,6 +80,7 @@ tagalog_pairs = [
     (r"sino ang gumawa sa'yo?.*", ["Si Ramil sa tulong ng makabagong teknolohiya.", "Dexter Basillian."]),
     (r"(.*)", ["Puwede mong ikwento pa?", "Gusto kong marinig pa yan.", "Interesante, ikwento mo pa."])
 ]
+
 
 # Language detection with Taglish sensitivity
 def detect_language(text):

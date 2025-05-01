@@ -1,7 +1,8 @@
-You: kamusta ka
-Eliza: Mabuti naman ako, ikaw? 🤗
-<<<<<<< HEAD
-=======
-You: i miss you baby
-Eliza: That's intriguing.
->>>>>>> f4f2213 (Eliza Chatbot)
+You: hello
+Eliza: Hello! 😊
+You: i am happy
+Eliza: Interesting. Tell me more.
+You: masaya ako
+Eliza: Nakakatuwa naman!
+You: i feel happy
+Eliza: Why do you feel happy?
