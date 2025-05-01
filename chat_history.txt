@@ -1,2 +1,7 @@
 You: kamusta ka
 Eliza: Mabuti naman ako, ikaw? 🤗
+<<<<<<< HEAD
+=======
+You: i miss you baby
+Eliza: That's intriguing.
+>>>>>>> f4f2213 (Eliza Chatbot)
