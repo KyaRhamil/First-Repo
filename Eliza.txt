@@ -1,0 +1,638 @@
+import customtkinter as ctk
+import random
+import re
+import threading
+import time
+import pyttsx3
+import speech_recognition as sr
+import langdetect
+import datetime
+from fpdf import FPDF
+from fpdf.enums import XPos, YPos
+
+tts_engine = pyttsx3.init()
+tts_engine.setProperty('volume', 1.0) 
+
+
+# Precompiled regex patterns for curse words
+CURSE_WORDS_EN_PATTERN = re.compile(r"\b(fuck|shit|damn|bitch|asshole)\b", re.IGNORECASE)
+CURSE_WORDS_TL_PATTERN = re.compile(r"\b(tangina|putang ina|gago|ulol|puta)\b", re.IGNORECASE)
+
+# Memory
+memory = []
+chat_history = []
+eliza_mood = "neutral"
+
+# Reflections
+reflections = {
+    "i am": "you are", "i": "you", "me": "you", "my": "your",
+    "you are": "I am", "you": "me", "your": "my"
+}
+
+# Cursed words English
+curse_words_english = (
+    r".*\b(fuck|shit|damn|bitch|asshole)\b.*",
+    [
+        "Please watch your language.",
+        "Let's keep our conversation respectful.",
+        "Mind your words, please.",
+        "I'd prefer if we stayed polite.",
+        "Let's refrain from using such language."
+    ]
+)
+# Cursed Words reponses
+CURSE_RESPONSES_EN = [
+    "Please watch your language.",
+    "Let's keep our conversation respectful.",
+    "Mind your words, please.",
+    "I'd prefer if we stayed polite.",
+    "Let's refrain from using such language."
+]
+
+# English patterns
+# English patterns (updated)
+english_pairs = [
+    (r"hi|hello|hey", ["Hello! 😊", "Hi there! 👋", "Hey! How can I help?"]),                                                   # 1
+    (r"how are you\??", ["I'm doing well, thanks for asking!", "All systems good!"]),                                              # 2
+    (r"what's your name\??", ["I'm Eliza, your chat companion.", "Call me Eliza."]),                                                # 3
+    (r"who created you\??", ["I was built by an awesome developer!", "Someone smart brought me to life."]),                         # 4
+    (r"i need (.*)", ["Why do you need %1?", "Would getting %1 help you?"]),                                                       # 5
+    (r"i feel (.*)", ["Why do you feel %1?", "Since when have you felt %1?"]),                                                     # 6
+    (r"i'm (.*)", ["How long have you been %1?", "What made you %1?"]),                                                            # 7
+    (r"because (.*)", ["Is that the only reason?", "Are there other factors involved?"]),                                         # 8
+    (r"(.*) sorry (.*)", ["No worries!", "It's okay, everyone makes mistakes."]),                                               # 9
+    (r"(.*) help (.*)", ["I'm here to help! What do you need?", "How can I assist you?"]),                                         # 10
+    (r"what's up\??", ["Just here to chat. What's on your mind?"]),                                                               # 11
+    (r"tell me a joke", ["Why don't scientists trust atoms? Because they make up everything!"]),                                    # 12
+    (r"do you like (.*)\??", ["I really enjoy %1.", "Yes, %1 sounds interesting."]),                                              # 13
+    (r"(.*) music(.*)", ["Music lifts the soul!", "I love discussing music."]),                                                  # 14
+    (r"(.*) movie(.*)", ["Movies are great conversation starters!", "I enjoy films too."]),                                        # 15
+    (r"what can you do\??", ["I can chat with you about many topics.", "I'm here to listen and help."]),                            # 16
+    (r"(.*) book(.*)", ["Books are windows to new worlds.", "I always enjoy a good story."]),                                      # 17
+    (r"i love (.*)", ["Love is a wonderful feeling!", "That's heartwarming."]),                                                  # 18
+    (r"i hate (.*)", ["That's unfortunate. Why do you feel that way?", "Hate can be difficult; care to elaborate?"]),               # 19
+    (r"what do you think about (.*)\??", ["That's interesting – what do you think?", "I see both sides of that issue."]),           # 20
+    (r"tell me about (.*)", ["Here's what I know about %1.", "Let's explore %1 together."]),                                      # 21
+    (r"(.*) news(.*)", ["The news can be overwhelming sometimes.", "I try to stay updated with current events."]),                 # 22
+    (r"(.*) weather(.*)", ["The weather today is quite pleasant!", "It seems like rain might be coming."]),                         # 23
+    (r"(.*) sport(.*)", ["Sports bring people together.", "I'm a fan of many sports."]),                                           # 24
+    (r"(.*) game(.*)", ["Games are a fun way to relax.", "I enjoy playing games too."]),                                          # 25
+    (r"hello there", ["General Kenobi!"]),                                                                                       # 26
+    (r"what time is it\??", ["It's time to chat!", "Time flies when we're having fun."]),                                         # 27
+    (r"(.*) food(.*)", ["Food is essential for life.", "I love discussing recipes and restaurants."]),                           # 28
+    (r"(.*) drink(.*)", ["A good drink can be refreshing!", "I enjoy a nice cup of coffee."]),                                    # 29
+    (r"(.*) car(.*)", ["Cars are a marvel of engineering.", "Do you drive often?"]),                                             # 30
+    (r"(.*) computer(.*)", ["Computers are an amazing tool.", "I love talking about tech."]),                                     # 31
+    (r"(.*) internet(.*)", ["The internet connects us all.", "It's amazing how informative it can be."]),                          # 32
+    (r"do you understand\??", ["I do my best to understand!", "I'm always learning."]),                                           # 33
+    (r"(.*) code(.*)", ["Coding is like solving puzzles.", "I enjoy writing code too."]),                                         # 34
+    (r"(.*) python(.*)", ["Python is my favorite language!", "I love Python; it's so versatile."]),                                # 35
+    (r"(.*) problem(.*)", ["Every problem has a solution.", "What's bothering you specifically?"]),                              # 36
+    (r"(.*) solution(.*)", ["Let's think of a solution together.", "Sometimes, the simplest solution is best."]),                  # 37
+    (r"(.*) thank(.*)", ["You're welcome!", "No problem at all."]),                                                              # 38
+    (r"goodbye|bye", ["Farewell! It was nice talking to you.", "Goodbye! Take care."]),                                          # 39
+    (r"(.*) fantastic(.*)", ["That's fantastic indeed!", "I'm glad to hear that."]),                                             # 40
+    (r"how old are you\??", ["I don't age like humans do.", "Time is just a concept for me."]),                                    # 41
+    (r"(.*) family(.*)", ["Family is important.", "Tell me about your family."]),                                                # 42
+    (r"(.*) friend(.*)", ["Friends make life better.", "I'd love to hear about your friends."]),                                  # 43
+    (r"(.*) travel(.*)", ["Travel opens up new perspectives.", "Where would you like to travel?"]),                                # 44
+    (r"(.*) computer(.*)", ["Computers are fascinating, aren't they?", "Tech is ever-changing."]),                                # 45
+    (r"(.*)\?", ["Could you elaborate on that?", "That's an interesting question."]),                                           # 46
+    (r"(.*) sometimes(.*)", ["Sometimes, that's just how it is.", "Life can be unpredictable."]),                                 # 47
+    (r"(.*) rarely(.*)", ["Not often, but it happens.", "Rarity can make it special."]),                                          # 48
+    (r"(.*) info(.*)", ["Information is powerful.", "I'm here to share what I know."]),                                         # 49
+]
+
+# Masamang salita Tagalog
+curse_words_tagalog = (
+    r".*\b(tangina|putang ina|gago|ulol|puta)\b.*",
+    [
+        "Pakiusap, gamitin natin ang magalang na pananalita.",
+        "Iwasan natin ang pagmumura, salamat.",
+        "Magalang na usapan lang sana.",
+        "Tayo'y maging maayos sa salita.",
+        "Huwag sanang gamitin ang mga malaswang salita."
+    ]
+)
+# Masamang salita tugon
+CURSE_RESPONSES_TL = [
+    "Pakiusap, gamitin natin ang magalang na pananalita.",
+    "Iwasan natin ang pagmumura, salamat.",
+    "Magalang na usapan lang sana.",
+    "Tayo'y maging maayos sa salita.",
+    "Huwag sanang gamitin ang mga malaswang salita."
+]
+
+# Tagalog patterns
+# Tagalog patterns (updated)
+tagalog_pairs = [
+    (r"kamusta(\s+mo)?\??", ["Mabuti naman ako, ikaw?", "Ayos lang, paano ka?"]),                                                  # 1
+    (r"magandang araw", ["Magandang araw din!", "Magandang araw sa iyo!"]),                                                         # 2
+    (r"ano ang pangalan mo\??", ["Ako si Eliza, ang chatbot mo.", "Eliza lang po."]),                                                  # 3
+    (r"sino ang gumawa sa'yo\??", ["Si Ramil ang lumikha sa akin.", "Dito ako dahil sa isang mahusay na developer."]),                   # 4
+    (r"kailangan ko ng (.*)", ["Bakit mo kailangan ang %1?", "Para saan mo kailangan ang %1?"]),                                          # 5
+    (r"nararamdaman ko (.*)", ["Bakit mo nararamdaman ang %1?", "Kailan mo naramdaman ang %1?"]),                                        # 6
+    (r"iniisip ko (.*)", ["Bakit mo iniisip ang %1?", "Ano ang ibig sabihin ng %1 sa'yo?"]),                                             # 7
+    (r"pasensya na(.*)", ["Walang anuman.", "Ayos lang 'yan, nangyayari 'yan sa lahat."]),                                              # 8
+    (r"tulong(.*)", ["Narito ako para tumulong.", "Sabihin mo kung anong kailangan mo."]),                                               # 9
+    (r"ano ang ginagawa mo\??", ["Nakikipag-usap ako sa'yo.", "Naglilibang ako dito."]),                                               # 10
+    (r"anong balita\??", ["Marami, ano'ng bago?", "May mga bagong pangyayari, ano sa tingin mo?"]),                                      # 11
+    (r"magkwento ka", ["Sige, ikukwento ko ang aking kuwento.", "May kuwento akong ibabahagi."]),                                      # 12
+    (r"ano ang ginagawa mo\??", ["Nag-iisip ako kung paano kita matutulungan.", "Naghihintay ako sa iyong susunod na tanong."]),           # 13
+    (r"ikaw ba ay masaya\??", ["Oo, masaya ako sa pagtulong sa iyo.", "Masaya akong makausap ka."]),                                    # 14
+    (r"malungkot ako", ["Nakikiramay ako. Nais mo bang pag-usapan ito?", "Nandito ako para makinig."]),                                  # 15
+    (r"gusto ko ng (.*)", ["Bakit mo gusto ang %1?", "Ikwento mo kung bakit ka gusto ang %1."]),                                         # 16
+    (r"ano ang ibig sabihin ng (.*)", ["Ibig sabihin nito ay %1.", "May kahulugan ang %1."]),                                          # 17
+    (r"(.*) pagkain(.*)", ["Masarap ang pagkain!", "Ano ang paborito mong pagkain?"]),                                              # 18
+    (r"(.*) inumin(.*)", ["Nakakapresko ang inumin.", "Ano ang karaniwan mong iniinom?"]),                                             # 19
+    (r"nakikita mo ba ako?", ["Nandito lang ako, laging handa.", "Nandito ako para sa'yo."]),                                            # 20
+    (r"(.*) trabaho(.*)", ["Mahalaga ang trabaho.", "Ano ang iyong trabaho?"]),                                                    # 21
+    (r"(.*) bahay(.*)", ["Ang bahay ay tahanan.", "Nasaan ang iyong bahay?"]),                                                       # 22
+    (r"paalam|goodbye", ["Paalam! Sana'y mag-usap tayo ulit.", "Ingatan mo ang sarili mo!"]),                                          # 23
+    (r"(.*) salamat(.*)", ["Walang anuman!", "Laging handa akong tumulong."]),                                                     # 24
+    (r"(.*) problema(.*)", ["May problema ang bawat isa, paano natin ito aayusin?", "Sabihin mo ang iyong problema."]),                    # 25
+    (r"(.*) solusyon(.*)", ["Maghanap tayo ng solusyon nang magkasama.", "Baka malapit na ang sagot."]),                               # 26
+    (r"greetings", ["Kamusta!", "Maligayang pagbati!"]),                                                                           # 27
+    (r"kumusta ang araw mo\??", ["Maayos naman, salamat.", "Maganda ang araw ko."]),                                                 # 28
+    (r"ano ang oras\??", ["Hindi ko alam ang eksaktong oras, ngunit tumatakbo ang panahon.", "Tingnan mo ang iyong relo."]),                  # 29
+    (r"(.*) kaibigan(.*)", ["Mahalaga ang kaibigan.", "Kuwento mo tungkol sa iyong kaibigan."]),                                       # 30
+    (r"(.*) teknolohiya(.*)", ["Nakakamangha ang teknolohiya.", "Kamusta ang iyong karanasan sa teknolohiya?"]),                           # 31
+    (r"(.*) musika(.*)", ["Nagpapasaya ang musika.", "Anong genre ng musika ang gusto mo?"]),                                          # 32
+    (r"(.*) libro(.*)", ["Ang libro ay nagbibigay-kaalaman.", "Ano ang huling librong binasa mo?"]),                                      # 33
+    (r"paano ka\??", ["Ayos lang ako, salamat sa pagtatanong.", "Maayos naman, ikaw?"]),                                             # 34
+    (r"ano ang balita sa(.*)", ["Hindi masyadong bago, ano ang iyong balita?", "Marami ang nagaganap ngayon."]),                         # 35
+    (r"(.*) laro(.*)", ["Nakakapagpahinga ang paglalaro.", "Mahilig ka ba sa mga laro?"]),                                            # 36
+    (r"(.*) tanong(.*)", ["Ano ang iyong tanong?", "Tungkol saan ang tanong mo?"]),                                                  # 37
+    (r"(.*) sagot(.*)", ["Subukan nating hanapin ang sagot.", "Ano'ng sagot ang nais mong malaman?"]),                                  # 38
+    (r"(.*) mahal(.*)", ["Mahal ang buhay.", "Pag-usapan natin ang pag-ibig."]),                                                      # 39
+    (r"(.*) masaya(.*)", ["Masaya ako kapag nakikinig sa'yo.", "Ikwento mo kung bakit ka masaya."]),                                 # 40
+    (r"(.*) lungkot(.*)", ["Nakalulungkot, makikinig ako sa'yo.", "Nandito ako para sa iyong lungkot."]),                                # 41
+    (r"(.*) tanawin(.*)", ["Kahanga-hanga ang tanawin.", "Ano ang paborito mong tanawin?"]),                                           # 42
+    (r"(.*) pangarap(.*)", ["Mahalaga ang pangarap.", "Ano ang iyong pangarap?"]),                                                   # 43
+    (r"(.*) pag-ibig(.*)", ["Makapangyarihan ang pag-ibig.", "Ikwento mo ang iyong karanasan sa pag-ibig."]),                             # 44
+    (r"(.*) saloobin(.*)", ["Mahalaga ang pagbabahagi ng saloobin.", "Ano ang iyong nararamdaman?"]),                                   # 45
+    (r"(.*) problema(.*)", ["Bahagi ang problema ng buhay.", "Pag-usapan natin ang problema."]),                                      # 46
+    (r"(.*) tanong(.*)", ["May tanong ka ba? Ikwento mo.", "Ano ang nais mong malaman?"]),                                          # 47
+    (r"(.*) sagot(.*)", ["Subukan nating tuklasin ang sagot.", "Baka may sagot na nandiyan."]),                                      # 48
+    (r"papaalam na", ["Paalam, salamat sa usapan!", "Hanggang sa muli!"]),                                                           # 49
+]
+
+# Neutral responses
+neutral_pairs_en = [
+    "Interesting, tell me more.",
+    "I see. Please continue.",
+    "That's intriguing.",
+    "Could you elaborate on that?",
+    "Hmm, go on...",
+    "I understand, tell me more.",
+    "That's quite neutral.",
+    "Can you share more details?",
+    "I'm listening, please elaborate.",
+    "Fascinating, please continue.",
+    "Let's discuss that further.",
+    "What else can you tell me?",
+    "I hear you, continue.",
+    "That's an interesting perspective.",
+    "Could you expand on that?",
+    "I'm curious, please continue.",
+    "What do you think next?",
+    "Please, tell me more about that.",
+    "I see, feel free to share more.",
+    "That's interesting, do go on.",
+    "Let's delve deeper.",
+    "Your words are intriguing; continue.",
+    "I appreciate your input, please continue.",
+    "That's unusual, I'd like to hear more.",
+    "Your perspective is valuable; please elaborate.",
+    "Continue, I'm interested.",
+    "That's a good point, what else?",
+    "Hmm, that catches my attention.",
+    "Very well, tell me more.",
+    "Your thoughts are interesting, continue.",
+    "I'm captivated by what you said; please share more.",
+    "That’s a neutral tone, go on.",
+    "Could you provide more detail?",
+    "I appreciate the insight; please continue.",
+    "Let's explore that idea further.",
+    "What do you mean by that?",
+    "I follow, please elaborate.",
+    "Your explanation is neutral; please continue.",
+    "That's clear, what else?",
+    "I'm curious about more details.",
+    "Neutral indeed, can you share more?",
+    "That's balanced, please go on.",
+    "I understand, what more can you say?",
+    "Please continue with your thought.",
+    "I'm interested in your neutral view; elaborate more.",
+    "Could you clarify further?",
+    "Absolutely, tell me more.",
+    "That's quite balanced, please continue.",
+    "I acknowledge your view; please uncover more.",
+    "Thank you for sharing, elaborate a bit more."
+]
+
+neutral_pairs_tl = [
+    "Interesante, ipaliwanag mo pa.",
+    "Naiintindihan ko, ipaliwanag mo pa.",
+    "Naku, ipagpatuloy mo pa.",
+    "Magandang ideya, paki-detalye pa.",
+    "Ano pa ang iyong nais sabihin?",
+    "Gusto kong marinig pa.",
+    "Ikwento mo pa.",
+    "Huwag kang mag-atubili, sabihin mo pa.",
+    "Napansin ko ang iyong saloobin, magpatuloy ka.",
+    "Mukhang may ibig sabihin 'yan, ipaliwanag mo pa.",
+    "Ibahagi mo pa ang iyong mga ideya.",
+    "Mas makabubuting pakinggan pa ang iyong paliwanag.",
+    "Saan ka ba patungo sa pag-iisip na iyan?",
+    "Hindi pa ako sigurado, maaari mo pa bang ipaliwanag?",
+    "Ang tanong mo ay kawili-wili, magpatuloy ka.",
+    "Sabihin mo pa, interesado akong malaman.",
+    "Marahil ay may iba ka pang ideya, ipagpatuloy mo.",
+    "Paki-detalye pa, medyo nalilito ako.",
+    "Sabihin mo pa ng buo ang iyong naiisip.",
+    "Baka may dagdag ka pa sa sinasabi mo.",
+    "Magandang punto, ano pa ang masasabi mo?",
+    "Ayon sa iyo, ipaliwanag mo pa nang mas maigi.",
+    "Ikaw ba ay may iba pang nais iparating?",
+    "Tiyak na may nais ka pang sabihin, ipagpatuloy mo.",
+    "Bakit ganoon ang iyong pananaw? Ikwento mo pa.",
+    "Ang usapan na ito ay kamangha-mangha, ipaliwanag mo pa.",
+    "Alamin natin nang mas mabuti, sabihin mo pa.",
+    "Anong ibig sabihin ng iyong sinasabi?",
+    "Napaisip ako, maaari mo pa bang dagdagan?",
+    "Marami akong natutunan, sana'y ipagpatuloy mo.",
+    "Talagang kawili-wili, ano pang mga punto?",
+    "Paano mo masasabing ganito? Ipaliliwanag mo pa.",
+    "Paki-detalye pa ang iyong ideya.",
+    "Marahil ay may mas malalim kang naiisip, ipaliwanag mo.",
+    "Paki-share mo pa ang iyong saloobin.",
+    "Gusto kong malaman ang iba pang bahagi nito.",
+    "Napakalinaw ng pahayag mo, ano pa ang iyong sabihin?",
+    "Ikwento mo pa ito nang mas detalyado.",
+    "Mukhang may sinisumbong ka, paki-detalye pa.",
+    "Ano ang dapat kong malaman pa tungkol diyan?",
+    "Ang iyong kwento ay nakakaintriga, ipagpatuloy mo pa.",
+    "Tila ba may nais kang ipabatid, sabihin mo pa.",
+    "Mas marami pa ba ang dapat kong malaman?",
+    "Paki-elaborate pa ang iyong nararamdaman.",
+    "Ang pahayag mo ay nagbibigay-inspirasyon, ipaliwanag mo pa.",
+    "Interesado akong marinig ang iba mo pang ideya.",
+    "Magpatuloy ka, huwag mong itigil ang pagbabahagi.",
+    "Paano mo maipapaliwanag ng mas mabuti?",
+    "Ang iyong saloobin ay mahalaga, ipagpatuloy mo.",
+    "Sabihin mo pa, damhin natin nang mabuti ang iyong mensahe."
+]
+
+
+# Helper function to filter curse words
+def filter_curse_words(text):
+    # Detect the language first
+    language = detect_language(text)
+    if language == "en":
+        if CURSE_WORDS_EN_PATTERN.search(text):
+            return random.choice(CURSE_RESPONSES_EN)
+    else:  # Assuming 'tl' for Tagalog
+        if CURSE_WORDS_TL_PATTERN.search(text):
+            return random.choice(CURSE_RESPONSES_TL)
+    return None
+
+# Language detection with Taglish sensitivity
+def detect_language(text: str) -> str:
+    """
+    Detect the language of the given text.
+    
+    Returns 'tl' for Tagalog (or Taglish) if certain keywords appear,
+    otherwise 'en' for English.
+    """
+    try:
+        lang = langdetect.detect(text)
+        if any(word in text.lower() for word in ["ikaw", "ako", "kamusta", "gusto", "sino", "malungkot", "masaya"]):
+            return "tl"
+        return "tl" if lang == "tl" else "en"
+    except Exception:
+        return "en"
+
+
+# Sticker Reactions
+def sticker_reaction(text):
+    stickers = {
+        "happy": "🎉 Wooohoo! Saya mo ah!",
+        "sad": "🤗 Yakap! Andito lang ako.",
+        "angry": "😡 Relax muna tayo, okay lang magalit minsan.",
+        "love": "💖 Awww, love is in the air!",
+        "help": "🛟 Let's work through it together!",
+        "thank": "🙏 You're welcome!"
+    }
+    for keyword, sticker in stickers.items():
+        if keyword in text.lower():
+            return sticker
+    return None
+
+# Response generation
+def generate_response(text):
+    # If the user expresses feelings, add to memory.
+    if any(word in text.lower() for word in ["i feel", "i'm", "malungkot", "masaya"]):
+        memory.append(text)
+
+    # Occasionally recall a previous memory.
+    if memory and random.random() < 0.2:
+        past = random.choice(memory)
+        return f"You mentioned before: '{past}'. How do you feel about it now?"
+
+    # First, check for cursed words.
+    curse_response = filter_curse_words(text)
+    if curse_response:
+        return curse_response
+
+    # Detect language.
+    lang = detect_language(text)
+
+    # Select appropriate regex patterns and fallback responses.
+    if lang == "en":
+        pairs = english_pairs
+        fallback = neutral_pairs_en
+    elif lang == "tl":
+        pairs = tagalog_pairs
+        fallback = neutral_pairs_tl
+    else:
+        pairs = []
+        fallback = neutral_pairs_en
+
+    # Try matching input with known patterns
+    for pattern, responses in pairs:
+        if pattern in [CURSE_WORDS_EN_PATTERN.pattern, CURSE_WORDS_TL_PATTERN.pattern]:
+            continue
+        match = re.search(pattern, text, re.IGNORECASE)
+        if match:
+            response = random.choice(responses)
+            return response.replace("%1", match.group(1)) if match.lastindex else response
+
+    # No pattern matched — return neutral fallback
+    return random.choice(fallback)
+
+
+
+# TTS Speak
+def speak(text: str) -> None:
+    def run_tts():
+        # Adjust the rate based on mood:
+        if eliza_mood == "sad":
+            tts_engine.setProperty('rate', 125)
+        elif eliza_mood == "happy":
+            tts_engine.setProperty('rate', 190)
+        else:
+            tts_engine.setProperty('rate', 155)
+        tts_engine.say(text)
+        tts_engine.runAndWait()
+    threading.Thread(target=run_tts, daemon=True).start()
+
+# Typing animation
+def type_response(message: str, response: str) -> None:
+    sticker = sticker_reaction(message)
+    chat_display.configure(state="normal")
+    chat_display.insert(ctk.END, f"\nYou: {message}\n", "user")
+    chat_display.insert(ctk.END, "\nEliza is typing...\n", "typing")
+    typing_index = chat_display.index(ctk.END + " - 2 lines")
+    chat_display.configure(state="disabled")
+    chat_display.see(ctk.END)
+
+    def animate_text(index=0):
+        if index == 0:
+            # Remove "Eliza is typing..."
+            chat_display.configure(state="normal")
+            chat_display.delete(typing_index, typing_index + "+1line")
+            chat_display.configure(state="disabled")
+
+        if index < len(response):
+            chat_display.configure(state="normal")
+            chat_display.insert(ctk.END, response[index], "eliza")
+            chat_display.configure(state="disabled")
+            chat_display.see(ctk.END)
+            delay = int(random.uniform(20, 35))
+            chat_display.after(delay, animate_text, index + 1)
+        else:
+            if sticker:
+                chat_display.configure(state="normal")
+                chat_display.insert(ctk.END, f"\n{sticker}\n", "eliza")
+                chat_display.configure(state="disabled")
+            chat_display.configure(state="normal")
+            chat_display.insert(ctk.END, "\n\n")
+            chat_display.configure(state="disabled")
+            chat_display.see(ctk.END)
+            chat_history.append(f"You: {message}")
+            chat_history.append(f"Eliza: {response}")
+            speak(response)
+
+    chat_display.after(100, animate_text)
+
+
+
+# Mood updates
+def update_mood(message):
+    global eliza_mood
+    if any(word in message.lower() for word in ["happy", "masaya", "excited", "awesome"]):
+        eliza_mood = "happy"
+        app.configure(bg_color="#D0F0C0")
+        mood_label.configure(text="😃")
+    elif any(word in message.lower() for word in ["sad", "malungkot", "cry"]):
+        eliza_mood = "sad"
+        app.configure(bg_color="#D0D3D4")
+        mood_label.configure(text="😢")
+    elif any(word in message.lower() for word in ["angry", "galit"]):
+        eliza_mood = "angry"
+        app.configure(bg_color="#F08080")
+        mood_label.configure(text="😡")
+    else:
+        eliza_mood = "neutral"
+        app.configure(bg_color="#FFFFFF")
+        mood_label.configure(text="😐")
+
+# Voice input
+def voice_input():
+    r = sr.Recognizer()
+    with sr.Microphone() as source:
+        chat_display.configure(state="normal")
+        chat_display.insert(ctk.END, "\n🎤 Listening...\n")
+        chat_display.configure(state="disabled")
+        chat_display.see(ctk.END)
+        try:
+            audio = r.listen(source, timeout=5)
+            voice_text = r.recognize_google(audio)
+            user_input.delete(0, ctk.END)
+            user_input.insert(0, voice_text)
+            send_message()
+        except sr.UnknownValueError:
+            chat_display.configure(state="normal")
+            chat_display.insert(ctk.END, "Sorry, I didn’t catch that. 😕\n")
+            chat_display.configure(state="disabled")
+        except sr.RequestError:
+            chat_display.configure(state="normal")
+            chat_display.insert(ctk.END, "Speech service error. 🚫\n")
+            chat_display.configure(state="disabled")
+        except sr.WaitTimeoutError:
+            chat_display.configure(state="normal")
+            chat_display.insert(ctk.END, "No speech detected. 💤\n")
+            chat_display.configure(state="disabled")
+
+# Save chat
+def save_chat():
+    with open("chat_history.txt", "w", encoding="utf-8") as f:
+        for line in chat_history:
+            f.write(line + "\n")
+
+# Save chat to PDF
+def save_chat_pdf():
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.add_font("DejaVu", "", "DejaVuSans.ttf")
+    pdf.add_font("DejaVu", "B", "DejaVuSans-Bold.ttf")
+    pdf.add_font("Symbola", "", "Symbola.ttf")
+
+    margin = 15
+    pdf.set_margins(left=margin, top=margin, right=margin)
+    pdf.set_auto_page_break(auto=True, margin=margin)
+
+    y = margin
+
+    # Generate a unique filename
+    now = datetime.datetime.now()
+    timestamp = now.strftime("%Y%m%d_%H%M%S")  # Format: YYYYMMDD_HHMMSS
+    pdf_filename = f"chat_history_{timestamp}.pdf"
+
+    for line in chat_history:
+        try:
+            if line.startswith("You:"):
+                pdf.set_font("DejaVu", "B", 12)
+                pdf.set_text_color(0, 0, 128)
+                pdf.cell(0, 8, line[:4], new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.set_font("DejaVu", "", 12)
+                pdf.set_text_color(0, 0, 0)
+                text_parts = line[4:].strip().split(" ")
+                for part in text_parts:
+                    if any(ord(char) > 1000 for char in part):
+                        pdf.set_font("Symbola", "", 12)
+                        pdf.cell(pdf.get_string_width(part + " "), 6, part + " ")
+                    else:
+                        pdf.set_font("DejaVu", "", 12)
+                        pdf.cell(pdf.get_string_width(part + " "), 6, part + " ")
+                pdf.ln()
+
+            elif line.startswith("Eliza:"):
+                pdf.set_font("DejaVu", "B", 12)
+                pdf.set_text_color(128, 0, 0)
+                pdf.cell(0, 8, line[:6], new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.set_font("DejaVu", "", 12)
+                pdf.set_text_color(0, 0, 0)
+                text_parts = line[6:].strip().split(" ")
+                for part in text_parts:
+                    if any(ord(char) > 1000 for char in part):
+                        pdf.set_font("Symbola", "", 12)
+                        pdf.cell(pdf.get_string_width(part + " "), 6, part + " ")
+                    else:
+                        pdf.set_font("DejaVu", "", 12)
+                        pdf.cell(pdf.get_string_width(part + " "), 6, part + " ")
+                pdf.ln()
+
+            else:
+                pdf.set_font("DejaVu", "I", 12)
+                pdf.set_text_color(0, 128, 0)
+                pdf.multi_cell(0, 6, line, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+            pdf.ln(4)
+
+        except Exception as e:
+            print(f"Error formatting line: {line} - {e}")
+            pdf.set_font("DejaVu", "", 12)
+            pdf.set_text_color(255, 0, 0)
+            pdf.multi_cell(0, 6, "Error rendering line", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+    pdf.output(pdf_filename)  # Use the unique filename
+    print(f"Chat history saved to PDF ({pdf_filename})")
+
+# Memory wipe
+def wipe_memory():
+    memory.clear()
+    chat_display.configure(state="normal")
+    chat_display.insert(ctk.END, "\n🧹 Memory cleared.\n")
+    chat_display.configure(state="disabled")
+
+# Toggle Dark/Light mode
+def toggle_mode():
+    current_mode = ctk.get_appearance_mode()
+    ctk.set_appearance_mode("Light" if current_mode == "Dark" else "Dark")
+
+# GUI
+ctk.set_appearance_mode("System")
+ctk.set_default_color_theme("blue")
+app = ctk.CTk()
+app.title("Eliza")
+app.geometry("580x750")
+
+top_frame = ctk.CTkFrame(app)
+top_frame.pack(pady=10)
+
+mood_label = ctk.CTkLabel(top_frame, text="😐", font=("Arial", 30))
+mood_label.pack(side="left", padx=10)
+
+mode_button = ctk.CTkButton(top_frame, text="🌗 Toggle Mode", command=toggle_mode)
+mode_button.pack(side="left", padx=10)
+
+save_pdf_button = ctk.CTkButton(top_frame, text="Save as PDF", command=save_chat_pdf)
+save_pdf_button.pack(side="left", padx=10)
+
+wipe_button = ctk.CTkButton(top_frame, text="🧹 Wipe Memory", command=wipe_memory)
+wipe_button.pack(side="left", padx=10)
+
+chat_display = ctk.CTkTextbox(app, width=520, height=500, state="disabled", wrap="word", font=("Consolas", 15))
+chat_display.pack(padx=20, pady=(10, 10))
+chat_display.tag_config("user", foreground="#3498db")
+chat_display.tag_config("eliza", foreground="#2ecc71")
+chat_display.tag_config("typing", foreground="#95a5a6")
+
+
+user_input = ctk.CTkEntry(app, width=400, font=("Arial", 16))
+user_input.pack(padx=20, pady=10)
+
+def send_message(event=None):
+    message = user_input.get()
+    if message.strip() == "":
+        return
+    user_input.delete(0, ctk.END)
+    update_mood(message)
+    response = generate_response(message)
+    threading.Thread(target=type_response, args=(message, response), daemon=True).start()
+
+button_frame = ctk.CTkFrame(app)
+button_frame.pack(pady=5)
+
+send_button = ctk.CTkButton(
+    button_frame, text="📩 Send", width=140, height=50, command=send_message
+)
+send_button.grid(row=0, column=0, padx=10)
+
+mic_button = ctk.CTkButton(
+    button_frame, text="🎤 Speak", width=140, height=50, command=lambda: threading.Thread(target=voice_input, daemon=True).start()
+)
+mic_button.grid(row=0, column=1, padx=10)
+
+app.bind('<Return>', send_message)
+
+chat_display.configure(state="normal")
+chat_display.insert(ctk.END, "👋 Greetings! I'm Eliza. How can I help you today?\n\n")
+chat_display.configure(state="disabled")
+chat_display.see(ctk.END)
+
+app.protocol("WM_DELETE_WINDOW", lambda: (save_chat(), app.destroy()))
+app.mainloop()
+
+#The pdf file will be saved in the same directory as the script. But it's not currently working.
+# You can uncomment the save_chat_pdf function call in the GUI section to enable it.
+# The chat history will be saved in a text file named "chat_history.txt" in the same directory as the script.
+# The memory wipe function will clear the memory of the chatbot.
+# The toggle mode function will switch between light and dark mode for the GUI.
+# The voice input function will allow the user to speak their message instead of typing it.
+# The typing animation will simulate the chatbot typing its response.
+# The sticker reaction function will add a sticker based on the user's mood.
+# The mood update function will change the chatbot's mood based on the user's input.
+# The response generation function will create a response based on the user's input and the chatbot's mood.
