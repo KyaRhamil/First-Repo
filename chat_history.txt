@@ -1,8 +1,14 @@
-You: hello
-Eliza: Hello! 😊
-You: i am happy
-Eliza: Interesting. Tell me more.
-You: masaya ako
-Eliza: Nakakatuwa naman!
-You: i feel happy
-Eliza: Why do you feel happy?
+You: kamusta
+Eliza: Mabuti naman ako, ikaw?
+You: mabuti rin ako, maraming salamat. Sino ka?
+Eliza: Laging handa akong tumulong.
+You: Ano ang pangalan mo
+Eliza: Ako si Eliza, ang chatbot mo.
+You: sino ang gumawa sayo
+Eliza: Sabihin mo pa ng buo ang iyong naiisip.
+You: Who are you
+Eliza: I acknowledge your view; please uncover more.
+You: who created you
+Eliza: I was built by an awesome developer!
+You: by who
+Eliza: What else can you tell me?
