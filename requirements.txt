@@ -7,7 +7,7 @@ fonttools==4.57.0
 fpdf2==2.8.3
 langdetect==1.0.9
 packaging==25.0
-pillow==11.2.1
+pillow==11.3.0
 pypiwin32==223
 pyttsx3==2.98
 pywin32==310
